@@ -1,6 +1,8 @@
 import { writable } from 'svelte/store';
 import supabase from '$lib/db';
 
+export const user = writable(supabase.auth.user() || false);
+
 export const todoStore = (() => {
 	const { subscribe, update, set } = writable({
 		step: 0,
@@ -14,7 +16,6 @@ export const todoStore = (() => {
 		subscribe,
 		update,
 		set,
-
 		get: async () => {
 			update((state) => {
 				state.isLoading = true;
@@ -36,10 +37,12 @@ export const todoStore = (() => {
 				update((state) => (state = { ...state, isLoading: false }));
 			}
 		},
-		add: async (task, isCompleted) => {
+		add: async (task, isCompleted, $user) => {
 			update((state) => (state = { ...state, step: 2, isLoading: true }));
 			try {
-				const { error } = await supabase.from('todos').insert([{ task, isCompleted }]);
+				const { error } = await supabase
+					.from('todos')
+					.insert([{ task, user_id: $user.id, isCompleted }]);
 				todoStore.get();
 				update((state) => (state = { ...state, task: '' }));
 				if (error) throw error;
